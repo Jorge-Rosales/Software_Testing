@@ -1,31 +1,36 @@
 const { test, expect } = require('@playwright/test');
 
-test('Flujo completo: Login y validación de Catálogo', async ({ page }) => {
-    // 1. Ir a la página de login
+test('Flujo completo: Login, Catálogo y Carrito', async ({ page }) => {
+    // 1. Login
     await page.goto('http://localhost/librerias_jok/pages/login.php');
-
-    // 2. Rellenar el formulario con las credenciales correctas
-    // Asegúrate de que los selectores [name="..."] coincidan con tu HTML
     await page.fill('input[name="email"]', 'jok@gmail.com');
     await page.fill('input[name="password"]', '200208');
-
-    // 3. Hacer clic en el botón de Iniciar sesión
-    // Usamos el texto del botón para asegurar el clic
     await page.click('button:has-text("Iniciar sesión")');
 
-    // 4. VALIDACIÓN CRUCIAL: Esperar a que la URL cambie a catalogo.php
-    // Esto evita que el test falle si la base de datos tarda un poco en responder
-    await page.waitForURL('**/catalogo.php', { timeout: 10000 });
+    // 2. Validar llegada al Catálogo
+    await page.waitForURL('**/catalogo.php');
+    // Usamos una expresión regular más específica para el título
+    await expect(page).toHaveTitle(/Catálogo/i);
+    
+    // Verificamos que el encabezado "Nuestro Catálogo" sea visible
+    const tituloSeccion = page.locator('h1:has-text("Nuestro Catálogo")');
+    await expect(tituloSeccion).toBeVisible();
 
-    // 5. Verificar que estamos en la URL correcta
+    // 3. Simular clic en el icono del carrito (para ver que está vacío o navegar)
+    // Opcional: Si quieres probar el botón del carrito arriba a la derecha:
+    await page.click('a[href*="carrito.php"]');
+
+    // 4. Validar llegada a Mi Carrito
+    await page.waitForURL('**/carrito.php');
+    await expect(page).toHaveTitle(/Mi Carrito/i);
+
+    // 5. Verificar que el carrito está vacío (según tu segunda imagen)
+    const mensajeVacio = page.locator('text=Tu carrito está vacío');
+    await expect(mensajeVacio).toBeVisible();
+
+    // 6. Regresar al catálogo usando el botón amarillo de tu imagen
+    await page.click('text=Ver catálogo');
     await expect(page).toHaveURL(/catalogo.php/);
 
-    // 6. Validar que el título de la página sea el esperado
-    await expect(page).toHaveTitle(/Librerías JOK/);
-
-    // 7. Interactuar con el catálogo (ejemplo: buscar el primer botón de compra)
-    const botonCompra = page.locator('.btn-outline-gold').first();
-    await expect(botonCompra).toBeVisible();
-    
-    console.log("¡Login exitoso y catálogo cargado correctamente!");
+    console.log("¡Prueba de navegación completa exitosa!");
 });
